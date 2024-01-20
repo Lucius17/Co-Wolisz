@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link
+			rel="stylesheet"
+			href="{{ url_for('static', filename='style.css') }}"
+		/>
+		<title>Wybór</title>
+	</head>
+	<body>
+		<h1>Wybierz jedną z opcji:</h1>
+		<form action="{{ url_for('wybor') }}" method="post">
+			<label for="ciastka">Ciastka</label>
+			<input type="radio" id="ciastka" name="wybor" value="Ciastka" required />
+
+			<label for="lody">Lody</label>
+			<input type="radio" id="lody" name="wybor" value="Lody" required />
+
+			<button type="submit">Wyślij</button>
+		</form>
+
+		<button type="button" onclick="pobierzPytanie()">Pobierz pytanie</button>
+		<p id="pytanie"></p>
+
+		<button type="button" onclick="pokazWyniki()">Pokaż wyniki</button>
+		<p id="wyniki"></p>
+
+		<script>
+			function pobierzPytanie() {
+				fetch("/pytanie")
+					.then((response) => response.json())
+					.then((data) => {
+						document.getElementById("pytanie").innerText =
+							data.pytanie + ": " + data.opcje.join(" vs ");
+					});
+			}
+
+			function pokazWyniki() {
+				fetch("/wyniki")
+					.then((response) => response.json())
+					.then((data) => {
+						document.getElementById("wyniki").innerText = `Opcja 1: ${
+							data.opcja_1.glosy
+						} głosów (${data.opcja_1.procent.toFixed(2)}%)\nOpcja 2: ${
+							data.opcja_2.glosy
+						} głosów (${data.opcja_2.procent.toFixed(2)}%)`;
+					});
+			}
+		</script>
+	</body>
+</html>
