@@ -96,37 +96,6 @@ def pytanie():
         conn.close()
         return jsonify({'status': 'Błąd', 'komunikat': 'Brak dostępnych pytań'}), 400
 
-@app.route('/odpowiedz', methods=['POST'])
-def odpowiedz():
-    dane_odpowiedzi = request.json
-    id_pytania = dane_odpowiedzi.get('id')
-    odpowiedz = dane_odpowiedzi.get('odpowiedz')
-
-    # Tutaj możesz obsłużyć odpowiedź, np. zapisać w bazie danych
-    if id_pytania is not None and odpowiedz in ['true', 'false']:
-        # Przykładowa logika obsługi odpowiedzi
-        conn = sqlite3.connect('pytania.db')
-        cursor = conn.cursor()
-        cursor.execute('SELECT * FROM pytania WHERE id = ?', (id_pytania,))
-
-        pytanie = cursor.fetchone()
-
-        if pytanie:
-            # Tutaj możesz dodać logikę zapisu odpowiedzi do bazy danych
-            # Przykład:
-            if odpowiedz == 'true':
-                cursor.execute('UPDATE pytania SET glosy_opcja_1 = glosy_opcja_1 + 1 WHERE id = ?', (id_pytania,))
-            else:
-                cursor.execute('UPDATE pytania SET glosy_opcja_2 = glosy_opcja_2 + 1 WHERE id = ?', (id_pytania,))
-            
-            conn.commit()
-            conn.close()
-
-            return jsonify({'status': 'OK'})
-        else:
-            return jsonify({'status': 'Błąd', 'komunikat': 'Pytanie o podanym ID nie istnieje'}), 400
-    else:
-        return jsonify({'status': 'Błąd', 'komunikat': 'Nieprawidłowe dane wejściowe'}), 400
 
 
 @app.route('/dodaj_pytanie', methods=['POST'])

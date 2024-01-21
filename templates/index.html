@@ -1,53 +1,132 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<link
+			href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css"
+			rel="stylesheet"
+			integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC"
+			crossorigin="anonymous"
+		/>
+		<link
 			rel="stylesheet"
 			href="{{ url_for('static', filename='style.css') }}"
 		/>
-		<title>Wybór</title>
+		<script
+			src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+			integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+			crossorigin="anonymous"
+		></script>
+		<title>Co wolisz</title>
 	</head>
 	<body>
-		<h1>Wybierz jedną z opcji:</h1>
-		<form action="{{ url_for('wybor') }}" method="post">
-			<label for="ciastka">Ciastka</label>
-			<input type="radio" id="ciastka" name="wybor" value="Ciastka" required />
+		<div class="container">
+			<h1 class="text-center"  ">Co wolisz?</h1>
 
-			<label for="lody">Lody</label>
-			<input type="radio" id="lody" name="wybor" value="Lody" required />
+			<div class="row przycisk">
+				
+					<button
+						type="button"
+						class="btn btn-primary fs-1 col"
+						id="opcja-1"
+						onclick="wybierzOpcje(1)"
+					></button>
+				
+				
+					<button
+						type="button"
+						class="btn btn-danger fs-1 col"
+						id="opcja-2"
+						onclick="wybierzOpcje(2)"
+					></button>
+				</
+			</div>
+			<div class="container row">
+				
+				
+					<h1 id="proc-1" class="text-center col"></h1>
+					<h1 id="proc-2" class="text-center col"></h1>
+				
+				
 
-			<button type="submit">Wyślij</button>
-		</form>
+				
+			</div>
+				<button onclick="reset()" id="reset" type="button" class=" col btn btn-success">Następne pytanie</button>
 
-		<button type="button" onclick="pobierzPytanie()">Pobierz pytanie</button>
-		<p id="pytanie"></p>
-
-		<button type="button" onclick="pokazWyniki()">Pokaż wyniki</button>
-		<p id="wyniki"></p>
+		</div>
 
 		<script>
+			
+			var wybrana = false;
+			var data = {};
+
 			function pobierzPytanie() {
 				fetch("/pytanie")
 					.then((response) => response.json())
-					.then((data) => {
-						document.getElementById("pytanie").innerText =
-							data.pytanie + ": " + data.opcje.join(" vs ");
+					.then((response_data) => {
+						data = response_data; // Zapisz dane do zmiennej globalnej
+						document.getElementById("opcja-1").innerText = data.opcje[0];
+						document.getElementById("opcja-2").innerText = data.opcje[1];
+						document.getElementById("proc-1").innerText = "";
+						document.getElementById("proc-2").innerText = "";
+						document.getElementById("reset").style.display = "none";
 					});
+			}
+			function reset(){
+				if(wybrana){
+					pobierzPytanie();
+					wybrana = false;
+				}
 			}
 
-			function pokazWyniki() {
-				fetch("/wyniki")
-					.then((response) => response.json())
-					.then((data) => {
-						document.getElementById("wyniki").innerText = `Opcja 1: ${
-							data.opcja_1.glosy
-						} głosów (${data.opcja_1.procent.toFixed(2)}%)\nOpcja 2: ${
-							data.opcja_2.glosy
-						} głosów (${data.opcja_2.procent.toFixed(2)}%)`;
-					});
+			function wybierzOpcje(index) {
+				if (wybrana) {
+					return;
+				}
+				console.log("Wybrano opcję: " + index);
+				var suma =  data.wyniki.opcja_1 + data.wyniki.opcja_2 + 1;
+				var op1 = data.wyniki.opcja_1
+				var op2 = data.wyniki.opcja_2
+				if (index == 1) {
+					op1++;
+				}
+				if (index == 2) {
+					op2++;
+				}
+				var proc1 = (op1 / suma) * 100;
+				var proc2 = (op2 / suma) * 100;
+				if (proc1 == Infinity) {
+					proc1 = 100;
+					proc2 = 0;
+				}
+				if (proc2 == Infinity) {
+					proc2 = 100;
+					proc1 = 0;
+				}
+				document.getElementById("proc-1").innerText = op1 + " , " + proc1.toFixed(2) + "%";
+				document.getElementById("proc-2").innerText = op2 + " , " + proc2.toFixed(2) + "%";
+			   
+				
+				var daneDoWyslania = {
+					"id": data.id_pytania,
+					"glos": index
+				}
+
+				fetch("/wybor", {
+			        method: "POST",
+					headers: {
+            		"Content-Type": "application/json"
+        		},
+			        body: JSON.stringify(daneDoWyslania)
+			    })
+				wybrana = true;
+				document.getElementById("reset").style.display = "block";
+
 			}
+			document.addEventListener("DOMContentLoaded", pobierzPytanie);
+
+
 		</script>
 	</body>
 </html>
