@@ -10,7 +10,6 @@ cursor = conn.cursor()
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS pytania (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tresc TEXT NOT NULL,
         opcja_1 TEXT NOT NULL,
         opcja_2 TEXT NOT NULL,
         glosy_opcja_1 INTEGER DEFAULT 0,
@@ -39,56 +38,87 @@ def wybor():
 
 @app.route('/pytanie', methods=['GET'])
 def pytanie():
-    # Przykładowe zapytanie do bazy danych
+    # Przykładowe zapytanie do bazy danych na temat losowego pytania
     conn = sqlite3.connect('pytania.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT tresc, opcja_1, opcja_2 FROM pytania WHERE id = 1')
-    pytanie = cursor.fetchone()
-    conn.close()
 
-    return jsonify({
-        'pytanie': pytanie[0],
-        'opcje': [pytanie[1], pytanie[2]]
-    })
+    # Pobierz losowe pytanie
+    cursor.execute('SELECT id, opcja_1, opcja_2 FROM pytania ORDER BY RANDOM() LIMIT 1')
+    pytanie = cursor.fetchone()
+
+    if pytanie:
+        # Pobierz wyniki dla tego pytania
+        cursor.execute('SELECT glosy_opcja_1, glosy_opcja_2 FROM pytania WHERE id = ?', (pytanie[0],))
+        wyniki = cursor.fetchone()
+
+        conn.close()
+
+        # Przygotuj odpowiedź JSON
+        response = {
+            'id_pytania': pytanie[0],
+            'opcje': [pytanie[1], pytanie[2]],
+            'wyniki': {'opcja_1': wyniki[0], 'opcja_2': wyniki[1]}
+        }
+
+        return jsonify(response)
+    else:
+        conn.close()
+        return jsonify({'status': 'Błąd', 'komunikat': 'Brak dostępnych pytań'}), 400
 
 @app.route('/odpowiedz', methods=['POST'])
 def odpowiedz():
-    odpowiedz = request.json.get('odpowiedz')
+    dane_odpowiedzi = request.json
+    id_pytania = dane_odpowiedzi.get('id')
+    odpowiedz = dane_odpowiedzi.get('odpowiedz')
+
     # Tutaj możesz obsłużyć odpowiedź, np. zapisać w bazie danych
-    return jsonify({'status': 'OK'})
+    if id_pytania is not None and odpowiedz in ['true', 'false']:
+        # Przykładowa logika obsługi odpowiedzi
+        conn = sqlite3.connect('pytania.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM pytania WHERE id = ?', (id_pytania,))
 
-@app.route('/wyniki', methods=['GET'])
-def wyniki():
-    # Pobieranie wyników z bazy danych
-    conn = sqlite3.connect('pytania.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT glosy_opcja_1, glosy_opcja_2 FROM pytania WHERE id = 1')
-    wyniki = cursor.fetchone()
-    conn.close()
+        pytanie = cursor.fetchone()
 
-    suma_glosow = wyniki[0] + wyniki[1]
-    procent_opcja_1 = (wyniki[0] / suma_glosow) * 100 if suma_glosow > 0 else 0
-    procent_opcja_2 = (wyniki[1] / suma_glosow) * 100 if suma_glosow > 0 else 0
+        if pytanie:
+            # Tutaj możesz dodać logikę zapisu odpowiedzi do bazy danych
+            # Przykład:
+            if odpowiedz == 'true':
+                cursor.execute('UPDATE pytania SET glosy_opcja_1 = glosy_opcja_1 + 1 WHERE id = ?', (id_pytania,))
+            else:
+                cursor.execute('UPDATE pytania SET glosy_opcja_2 = glosy_opcja_2 + 1 WHERE id = ?', (id_pytania,))
+            
+            conn.commit()
+            conn.close()
 
-    return jsonify({
-        'opcja_1': {'glosy': wyniki[0], 'procent': procent_opcja_1},
-        'opcja_2': {'glosy': wyniki[1], 'procent': procent_opcja_2}
-    })
+            return jsonify({'status': 'OK'})
+        else:
+            return jsonify({'status': 'Błąd', 'komunikat': 'Pytanie o podanym ID nie istnieje'}), 400
+    else:
+        return jsonify({'status': 'Błąd', 'komunikat': 'Nieprawidłowe dane wejściowe'}), 400
+
 
 @app.route('/dodaj_pytanie', methods=['POST'])
-def dodaj_pytanie():
+def dodaj_pytania():
     dane_pytania = request.json
 
-    tresc = dane_pytania.get('tresc')
-    opcja_1 = dane_pytania.get('opcja_1')
-    opcja_2 = dane_pytania.get('opcja_2')
-
-    if not tresc or not opcja_1 or not opcja_2:
-        return jsonify({'status': 'Błąd', 'komunikat': 'Wszystkie pola muszą być wypełnione'}), 400
+    if not isinstance(dane_pytania, list):
+        return jsonify({'status': 'Błąd', 'komunikat': 'Dane muszą być przesłane jako lista'}), 400
 
     conn = sqlite3.connect('pytania.db')
     cursor = conn.cursor()
-    cursor.execute('INSERT INTO pytania (tresc, opcja_1, opcja_2) VALUES (?, ?, ?)', (tresc, opcja_1, opcja_2))
+
+    for pytanie in dane_pytania:
+        opcja_1 = pytanie.get('opcja_1')
+        opcja_2 = pytanie.get('opcja_2')
+
+        if not opcja_1 or not opcja_2:
+            conn.rollback()
+            conn.close()
+            return jsonify({'status': 'Błąd', 'komunikat': 'Wszystkie pola muszą być wypełnione'}), 400
+
+        cursor.execute('INSERT INTO pytania (opcja_1, opcja_2) VALUES (?, ?)', (opcja_1, opcja_2))
+
     conn.commit()
     conn.close()
 
