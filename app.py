@@ -1,11 +1,12 @@
 from flask import Flask, render_template, request, jsonify
-import requests
+from flasgger import Swagger  # Import the Swagger module
 import sqlite3
 import os
 
 app = Flask(__name__)
+Swagger(app, template_file='swagger_template.yml')  # Initialize Swagger with the Flask app
 
-# Inicjalizacja bazy danych
+# Initialize or create the database if it doesn't exist
 if not os.path.exists('pytania.db'):
     conn = sqlite3.connect('pytania.db')
     cursor = conn.cursor()
@@ -23,18 +24,24 @@ if not os.path.exists('pytania.db'):
 
 @app.route('/')
 def index():
+    """
+    Home endpoint.
+    """
     return render_template('index.html')
 
 def obsluz_glosowanie(id_pytania, glos):
+    """
+    Handle voting for a given question ID and option.
+    """
     conn = sqlite3.connect('pytania.db')
     cursor = conn.cursor()
 
-    # Sprawdź, czy pytanie o podanym ID istnieje
+    # Check if the question with the specified ID exists
     cursor.execute('SELECT * FROM pytania WHERE id = ?', (id_pytania,))
     pytanie = cursor.fetchone()
 
     if pytanie:
-        # Zwiększ ilość głosów dla odpowiedniej opcji
+        # Increment the vote count for the selected option
         if glos == 1:
             cursor.execute('UPDATE pytania SET glosy_opcja_1 = glosy_opcja_1 + 1 WHERE id = ?', (id_pytania,))
         elif glos == 2:
@@ -52,6 +59,9 @@ def obsluz_glosowanie(id_pytania, glos):
 
 @app.route('/wybor', methods=['POST'])
 def wybor():
+    """
+    Vote endpoint. Handles incoming votes through a POST request.
+    """
     id_pytania = request.json.get('id')
     glos = request.json.get('glos')
 
@@ -66,25 +76,26 @@ def wybor():
     else:
         return jsonify({'status': 'Błąd', 'komunikat': 'Nieprawidłowe dane wejściowe'}), 400
 
-    
 @app.route('/pytanie', methods=['GET'])
 def pytanie():
-    # Przykładowe zapytanie do bazy danych na temat losowego pytania
+    """
+    Get a random question with options and voting results.
+    """
     conn = sqlite3.connect('pytania.db')
     cursor = conn.cursor()
 
-    # Pobierz losowe pytanie
+    # Get a random question
     cursor.execute('SELECT id, opcja_1, opcja_2 FROM pytania ORDER BY RANDOM() LIMIT 1')
     pytanie = cursor.fetchone()
 
     if pytanie:
-        # Pobierz wyniki dla tego pytania
+        # Get the voting results for the question
         cursor.execute('SELECT glosy_opcja_1, glosy_opcja_2 FROM pytania WHERE id = ?', (pytanie[0],))
         wyniki = cursor.fetchone()
 
         conn.close()
 
-        # Przygotuj odpowiedź JSON
+        # Prepare JSON response
         response = {
             'id_pytania': pytanie[0],
             'opcje': [pytanie[1], pytanie[2]],
@@ -96,10 +107,11 @@ def pytanie():
         conn.close()
         return jsonify({'status': 'Błąd', 'komunikat': 'Brak dostępnych pytań'}), 400
 
-
-
 @app.route('/dodaj_pytanie', methods=['POST'])
 def dodaj_pytania():
+    """
+    Add new questions to the database.
+    """
     dane_pytania = request.json
 
     if not isinstance(dane_pytania, list):
@@ -125,4 +137,4 @@ def dodaj_pytania():
     return jsonify({'status': 'OK'})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=80)
+    app.run(host='0.0.0.0', port=80, debug=True)

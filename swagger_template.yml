@@ -1,0 +1,72 @@
+swagger: "2.0"
+info:
+  title: "Simple Voting App API"
+  description: "API for a simple voting application"
+  version: "1.0"
+
+paths:
+  /:
+    get:
+      summary: "Home Endpoint"
+      responses:
+        "200":
+          description: "Returns the home page"
+
+  /wybor:
+    post:
+      summary: "Vote Endpoint"
+      consumes:
+        - application/json
+      parameters:
+        - name: id
+          in: body
+          required: true
+          description: "Question ID"
+          type: integer
+          example: 1 # Example value added
+        - name: glos
+          in: body
+          required: true
+          description: "Voting option (1 or 2)"
+          type: integer
+          example: 1 # Example value added
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
+
+  /pytanie:
+    get:
+      summary: "Get Random Question"
+      responses:
+        "200":
+          description: "Returns a random question"
+        "400":
+          description: "Bad Request"
+
+  /dodaj_pytanie:
+    post:
+      summary: "Add Question"
+      consumes:
+        - application/json
+      parameters:
+        - name: dane_pytania
+          in: body
+          required: true
+          description: "List of questions to add"
+          type: array
+          items:
+            type: object
+            properties:
+              opcja_1:
+                type: string
+                description: "Option 1"
+              opcja_2:
+                type: string
+                description: "Option 2"
+      responses:
+        "200":
+          description: "OK"
+        "400":
+          description: "Bad Request"
