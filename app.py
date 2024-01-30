@@ -1,12 +1,12 @@
 from flask import Flask, render_template, request, jsonify
-from flasgger import Swagger  # Import the Swagger module
+from flasgger import Swagger  
 import sqlite3
 import os
 
 app = Flask(__name__)
-Swagger(app, template_file='swagger_template.yml')  # Initialize Swagger with the Flask app
+Swagger(app, template_file='swagger_template.yml')  
 
-# Initialize or create the database if it doesn't exist
+
 if not os.path.exists('pytania.db'):
     conn = sqlite3.connect('pytania.db')
     cursor = conn.cursor()
@@ -36,12 +36,12 @@ def obsluz_glosowanie(id_pytania, glos):
     conn = sqlite3.connect('pytania.db')
     cursor = conn.cursor()
 
-    # Check if the question with the specified ID exists
+    
     cursor.execute('SELECT * FROM pytania WHERE id = ?', (id_pytania,))
     pytanie = cursor.fetchone()
 
     if pytanie:
-        # Increment the vote count for the selected option
+        
         if glos == 1:
             cursor.execute('UPDATE pytania SET glosy_opcja_1 = glosy_opcja_1 + 1 WHERE id = ?', (id_pytania,))
         elif glos == 2:
@@ -84,18 +84,18 @@ def pytanie():
     conn = sqlite3.connect('pytania.db')
     cursor = conn.cursor()
 
-    # Get a random question
+    
     cursor.execute('SELECT id, opcja_1, opcja_2 FROM pytania ORDER BY RANDOM() LIMIT 1')
     pytanie = cursor.fetchone()
 
     if pytanie:
-        # Get the voting results for the question
+        
         cursor.execute('SELECT glosy_opcja_1, glosy_opcja_2 FROM pytania WHERE id = ?', (pytanie[0],))
         wyniki = cursor.fetchone()
 
         conn.close()
 
-        # Prepare JSON response
+        
         response = {
             'id_pytania': pytanie[0],
             'opcje': [pytanie[1], pytanie[2]],

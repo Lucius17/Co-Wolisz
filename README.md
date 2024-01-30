@@ -10,7 +10,7 @@ To jest prosta aplikacja webowa napisana w Flask, umożliwiająca przeprowadzani
 
    ```bash
    git cone https://github.com/Lucius17/Co-Wolisz.git
-   docker build -t flask-ankieta .
-   docker run -p 80:80 flask-ankieta
+   docker build -t co-wolisz .
+   docker run -p 80:80 co-wolisz
 
    ```
